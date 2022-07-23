@@ -1,11 +1,18 @@
 import os
 import re
 import json
+from typing import Optional
 
 
 def parse_uptime_cmd_output(uptime_output):
     uptime_output = uptime_output.strip()
     m = re.match(r".*averages?\:[ \t]*([0-9\.]+)[\, \t]*([0-9\.]+)[\, \t]*([0-9\.]+).*", uptime_output)
+    if m is None:
+        return {
+            "1min": None,
+            "5min": None,
+            "15min": None,
+        }
     groups = m.groups()
     return {
         "1min": float(groups[0]),
@@ -19,24 +26,26 @@ def parse_free_cmd_output(free_output):
     output = {
         "ram": {"total": None, "used": None, "free": None},
         "swap": {"total": None, "used": None, "free": None},
-    }
+        }  # type: dict[str, dict[str, Optional[int]]]
     for line in lines:
         if line.startswith("Mem:"):
             m = re.match(r"Mem:[ \t]*([0-9]+)[ \t]*([0-9]+)[ \t]*([0-9]+)", line)
-            groups = m.groups()
-            output["ram"] = {
-                "total": int(groups[0]),
-                "used": int(groups[1]),
-                "free": int(groups[2]),
-            }
+            if m is not None:
+                groups = m.groups()
+                output["ram"] = {
+                    "total": int(groups[0]),
+                    "used": int(groups[1]),
+                    "free": int(groups[2]),
+                }
         if line.startswith("Swap:"):
             m = re.match(r"Swap:[ \t]*([0-9]+)[ \t]*([0-9]+)[ \t]*([0-9]+)", line)
-            groups = m.groups()
-            output["swap"] = {
-                "total": int(groups[0]),
-                "used": int(groups[1]),
-                "free": int(groups[2]),
-            }
+            if m is not None:
+                groups = m.groups()
+                output["swap"] = {
+                    "total": int(groups[0]),
+                    "used": int(groups[1]),
+                    "free": int(groups[2]),
+                }
                     
     return output
 
@@ -55,13 +64,12 @@ def parse_df_cmd_output(df_output):
             r"([0-9]+)[ \t]+"
             r".*"
         ), line)
-        if m is None:
-            import pdb; pdb.set_trace()
-        groups = m.groups()
-        output[groups[0]] = {
-            "used": int(groups[2]),
-            "available": int(groups[3]),
-        }
+        if m is not None:
+            groups = m.groups()
+            output[groups[0]] = {
+                "used": int(groups[2]),
+                "available": int(groups[3]),
+            }
 
     return output
 
